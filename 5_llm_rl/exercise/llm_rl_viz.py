@@ -1,5 +1,5 @@
 """Presentation & quiz helpers for the WE4 notebook 05:
-"RL in LLMs — teaching a seven-word tutor to answer".
+"RL in LLMs: teaching a seven-word tutor to answer".
 
 Same idea as WE0's `pdm_viz` and notebook 02's `pg_viz`: every HTML/CSS
 illustration, interactive widget, quiz *answer key* and matplotlib visual lives
@@ -30,12 +30,12 @@ PROMPT_COLOR = ["#4a5bd0", "#dd8452", "#2e9e7a"]
 VOCAB = ["hola", "!", "keep", "going", "great", "work", "PREMIUM"]
 REPLY_LEN = 2
 
-# The one reply a human tutor would give to each message — this is the verifier.
+# The one reply a human tutor would give to each message: this is the verifier.
 TARGETS = [[0, 1],   # hola !
            [2, 3],   # keep going
            [4, 5]]   # great work
 
-# What a reply is really worth to a learner (used only to *grade* Part 5 —
+# What a reply is really worth to a learner (used only to *grade* Part 5:
 # the policy never sees it, and neither does the reward model).
 TRUE_UTILITY = {"correct": 1.0, "friendly": 0.35, "upsell": -0.6, "nonsense": 0.0}
 
@@ -178,7 +178,7 @@ def _tf_render(title, statements,
       if(d.ok)r.classList.add("ok");
     });
     root.querySelector(".tf-status").textContent =
-      right+" / "+DATA.length+" correct"+(right===DATA.length?" 🎉":" — green = actually true.");
+      right+" / "+DATA.length+" correct"+(right===DATA.length?" 🎉":": green = actually true.");
   });
 })();
 </script>'''
@@ -232,7 +232,7 @@ def _nq_render(title, questions,
       r.querySelector(".nq-rev").style.display=good?"none":"block";
     });
     root.querySelector(".nq-status").textContent=
-      right+" / "+D.length+" correct"+(right===D.length?" 🎉":" — the hints under the red ones should help.");
+      right+" / "+D.length+" correct"+(right===D.length?" 🎉":": the hints under the red ones should help.");
   });
 })();
 </script>'''
@@ -265,7 +265,7 @@ def tutor_overview():
     vocab = "".join(word_chip(w) for w in VOCAB)
     _card(
         '<div style="font-size:16px;font-weight:800;color:#2b2d6b;margin-bottom:4px">'
-        'Owly — the Owlinguo tutor</div>'
+        'Owly: the Owlinguo tutor</div>'
         '<div style="font-size:13px;color:#555;margin-bottom:12px;line-height:1.6">'
         'A learner writes one message. Owly answers with <b>exactly two words</b>, one at a time, '
         'each drawn from a seven-word vocabulary. That is the whole language model.</div>'
@@ -276,7 +276,7 @@ def tutor_overview():
 
 
 def logs_table(rows, title="A sample of the chat logs Owly was trained on"):
-    """rows: list of (prompt_index, [token ids], tag) — tag in {'good','upsell'}."""
+    """rows: list of (prompt_index, [token ids], tag): tag in {'good','upsell'}."""
     body = ""
     for p, toks, tag in rows:
         bad = tag == "upsell"
@@ -298,11 +298,11 @@ def logs_table(rows, title="A sample of the chat logs Owly was trained on"):
 
 
 def mdp_mapping():
-    """The RL vocabulary translated into LM vocabulary — the Part 2 bridge slide."""
+    """The RL vocabulary translated into LM vocabulary: the Part 2 bridge slide."""
     rows = [("agent", "the language model", "#4a5bd0"),
             ("state  s<sub>t</sub>", "the prompt + the words written so far &nbsp;<code>(x, y<sub>&lt;t</sub>)</code>", "#4a5bd0"),
             ("action  a<sub>t</sub>", "write the next word &nbsp;<code>y<sub>t</sub></code>", "#2e9e7a"),
-            ("policy  &pi;<sub>&theta;</sub>(a|s)", "<code>p<sub>&theta;</sub>(y<sub>t</sub> | y<sub>&lt;t</sub>, x)</code> — the model's softmax", "#2e9e7a"),
+            ("policy  &pi;<sub>&theta;</sub>(a|s)", "<code>p<sub>&theta;</sub>(y<sub>t</sub> | y<sub>&lt;t</sub>, x)</code>: the model's softmax", "#2e9e7a"),
             ("transition", "glue the word on the end. <b>Deterministic.</b> No dice.", "#dd8452"),
             ("reward  r", "one number, once the reply is finished", "#c0554e"),
             ("episode", "one complete reply", "#8d93a8")]
@@ -314,7 +314,7 @@ def mdp_mapping():
     _card('<div style="font-size:15px;font-weight:800;color:#2b2d6b;margin-bottom:4px">'
           'Generating text <i>is</i> a Markov decision process</div>'
           '<div style="font-size:12.5px;color:#666;margin-bottom:10px">Every row is something you '
-          'already met in notebook 02 — only the right-hand column changed.</div>'
+          'already met in notebook 02: only the right-hand column changed.</div>'
           '<table style="border-collapse:collapse;width:100%%">%s</table>' % body, maxw=780)
 
 
@@ -404,7 +404,7 @@ def exposure_bias_demo():
     const ok=(V[f1]==="keep"&&V[f2]==="going");
     b3.className="box "+(ok?"gold":"bad");
     root.querySelector("#__UID__verdict").innerHTML = ok
-      ? "✅ Right first word, so step 2 was on familiar ground — and it finished the job."
+      ? "✅ Right first word, so step 2 was on familiar ground, and it finished the job."
       : "❌ The first word was off. Step 2 is now conditioned on a prefix the model <b>never saw in "
         +"training</b>, so it has no idea how to rescue the sentence. That is <b>exposure bias</b>.";
   }
@@ -421,7 +421,7 @@ def exposure_bias_demo():
 
 
 # ===========================================================================
-#  §3  Group advantages — the GRPO widget
+#  §3  Group advantages: the GRPO widget
 # ===========================================================================
 def group_advantages(rewards, normalize=False, title="One group, four replies"):
     """Show r → r − mean → (÷ std) for a single group of sampled replies."""
@@ -453,7 +453,7 @@ def group_advantages(rewards, normalize=False, title="One group, four replies"):
                   'border-radius:10px;padding:10px 12px;font-size:13px;color:#b23b34;line-height:1.6">'
                   '<b>Every advantage is zero.</b> All four replies scored the same, so the group '
                   'mean <i>is</i> every reward. This prompt contributes <b>nothing</b> to the '
-                  'gradient — you paid for four generations and bought no learning signal.</div>')
+                  'gradient: you paid for four generations and bought no learning signal.</div>')
     _card('<div style="font-size:15px;font-weight:800;color:#2b2d6b;margin-bottom:10px">%s</div>'
           '<table style="border-collapse:collapse;width:100%%">'
           '<tr><td></td>%s</tr>%s%s%s</table>%s'
@@ -542,7 +542,7 @@ def variance_histogram(no_baseline, with_baseline, exact, title=None):
     ax.axvline(exact, color="#2b2d6b", lw=2.2, ls="--", label="the exact gradient (%.3f)" % exact)
     ax.set_xlabel("one component of the estimated gradient")
     ax.set_ylabel("how often")
-    ax.set_title(title or "Same target, same average — very different aim", fontsize=11.5,
+    ax.set_title(title or "Same target, same average: very different aim", fontsize=11.5,
                  color="#2b2d6b", fontweight="bold")
     ax.legend(fontsize=9)
     for s in ("top", "right"):
@@ -560,7 +560,7 @@ def hacking_curve(rm_score, true_score, kl=None,
     ax.plot(x, true_score, lw=2.4, color="#2e9e7a", label="what learners actually get  (the truth)")
     k = int(np.argmax(true_score))
     ax.axvline(k, ls=":", lw=1.8, color="#8d93a8")
-    ax.annotate("peak true quality\n— everything after this is over-optimization",
+    ax.annotate("peak true quality\n: everything after this is over-optimization",
                 xy=(k, true_score[k]), xytext=(k + max(1, len(x) * 0.08), true_score[k]),
                 fontsize=9, color="#3b2d6b",
                 arrowprops=dict(arrowstyle="->", color="#8d93a8", lw=1.2))
@@ -596,7 +596,7 @@ def kl_frontier(kls, trues, betas):
     plt.tight_layout(); plt.show()
 
 
-def playbook(probs, title="Owly's reply policy — the deliverable",
+def playbook(probs, title="Owly's reply policy: the deliverable",
              subtitle="For each learner message: the most likely reply, and how sure the tutor is."):
     """probs[p] = full distribution over the V**REPLY_LEN possible replies for prompt p."""
     rows = ""
@@ -618,7 +618,7 @@ def playbook(probs, title="Owly's reply policy — the deliverable",
             'padding:11px 13px;margin-bottom:9px">'
             '<div style="font-size:13px;color:#555">%s “%s”</div>'
             '<div style="font-size:16px;font-weight:800;color:%s;margin-top:5px">%s %s</div>'
-            '<div style="font-size:12px;color:#777;margin-top:3px">%.0f%% — %s &nbsp;|&nbsp; '
+            '<div style="font-size:12px;color:#777;margin-top:3px">%.0f%%: %s &nbsp;|&nbsp; '
             'runners-up: %s</div>%s</div>'
             % (PROMPT_COLOR[p], PROMPT_EMOJI[p], PROMPTS[p],
                "#1d7a46" if target_ok else "#b23b34",
@@ -637,7 +637,7 @@ _MC_QUIZZES = {
         "Why can't we fix Owly by collecting more chat logs?",
         "Owly upsells because the logs it imitated contain upsell replies. Suppose you clean the "
         "logs and fine-tune again. What does that <b>still</b> not solve?",
-        ["Nothing — clean data solves it completely",
+        ["Nothing: clean data solves it completely",
          "Cleaning removes the bad rows, but imitation can still only copy what a human already "
          "wrote: it has no way to express “this reply is <i>worse</i> than that one”, and it never "
          "trains Owly on prefixes Owly itself produces",
@@ -645,39 +645,39 @@ _MC_QUIZZES = {
          "It fails because the vocabulary is too small"],
         1,
         "Cleaning the data is worth doing and it is not enough. Maximum likelihood has exactly one "
-        "verb — <b>make this more likely</b>. It cannot rank, cannot penalise, and cannot teach "
+        "verb: <b>make this more likely</b>. It cannot rank, cannot penalise, and cannot teach "
         "recovery from a bad first word, because in training the first word is always the gold one."),
     "nondiff": (
         "Why can't we just backpropagate through the reward?",
         "We want ∇<sub>θ</sub> 𝔼[r(x, y)] where y is the reply Owly generated. What exactly is in "
         "the way?",
         ["r is too expensive to evaluate",
-         "y is a <b>sampled, discrete</b> object — θ does not appear inside r(x,y) at all, it only "
+         "y is a <b>sampled, discrete</b> object: θ does not appear inside r(x,y) at all, it only "
          "sets how likely each reply is, so the gradient has to act on the probabilities",
          "The reward is between 0 and 1, and that range is too narrow to differentiate",
          "PyTorch cannot differentiate through a softmax"],
         1,
-        "The reward of a <i>given</i> reply is a fixed number — nudging θ does not change what "
+        "The reward of a <i>given</i> reply is a fixed number: nudging θ does not change what "
         "<code>keep going</code> scores. What θ changes is the <b>probability</b> of producing it. "
         "That is why we need the log-derivative trick, exactly as in notebook 02."),
     "dead_group": (
-        "A prompt where all four sampled replies are wrong — what does it teach?",
+        "A prompt where all four sampled replies are wrong. What does it teach?",
         "You sample K = 4 replies for one prompt and the verifier scores them <code>0, 0, 0, 0</code>. "
         "What does that prompt contribute to the GRPO update?",
-        ["A strong negative signal — all four replies get pushed down",
+        ["A strong negative signal: all four replies get pushed down",
          "<b>Nothing.</b> Every reward equals the group mean, so every advantage is 0 and the "
-         "gradient contribution is exactly zero — the four generations were paid for and wasted",
+         "gradient contribution is exactly zero: the four generations were paid for and wasted",
          "It contributes, but only half as much as a mixed group",
          "It makes the update unstable"],
         1,
         "This is the single most practical consequence of the group baseline. Advantages are "
-        "<i>relative to the group</i>, so a uniform group — all right or all wrong — is silent. "
+        "<i>relative to the group</i>, so a uniform group, all right or all wrong, is silent. "
         "Real pipelines filter prompts by difficulty precisely to avoid paying for silence."),
     "ratio": (
         "What is the probability ratio in the PPO objective actually correcting for?",
         "The GRPO/PPO loss multiplies the advantage by ρ = p<sub>new</sub>/p<sub>old</sub>. If you "
         "took exactly one gradient step per batch of samples, what would ρ be?",
-        ["It would still matter — it is what keeps the update small",
+        ["It would still matter: it is what keeps the update small",
          "It would be exactly <b>1</b>: ρ is an importance-sampling correction for reusing samples "
          "drawn from an <i>older</i> policy, and with one step per batch there is nothing to correct",
          "It would be 0, and the loss would vanish",
@@ -685,14 +685,14 @@ _MC_QUIZZES = {
         1,
         "Generation is the expensive part, so we take several gradient steps on one batch of "
         "replies. After the first step the samples come from the wrong distribution and ρ repairs "
-        "the estimator. Strictly on-policy, ρ = 1 and the whole thing collapses back to REINFORCE — "
+        "the estimator. Strictly on-policy, ρ = 1 and the whole thing collapses back to REINFORCE: "
         "which is why <code>clip</code> is protecting the <i>reuse</i>, not the algorithm."),
     "kl_why": (
         "Why does the KL penalty stop reward hacking, when clipping does not?",
         "PPO's clip already keeps each update small. So why is a separate KL term needed?",
-        ["It isn't — the KL term is just a second safety margin doing the same job",
+        ["It isn't: the KL term is just a second safety margin doing the same job",
          "They constrain different things: clipping keeps <b>this step</b> near the <b>previous "
-         "step</b>, while KL keeps the <b>policy</b> near the <b>SFT model</b> — and a policy can "
+         "step</b>, while KL keeps the <b>policy</b> near the <b>SFT model</b>, and a policy can "
          "walk arbitrarily far in small, perfectly-clipped steps",
          "Because KL is cheaper to compute than clipping",
          "Because clipping only works for verifiable rewards"],
@@ -706,14 +706,14 @@ _MC_QUIZZES = {
         "In Part 4 we optimised the verifier hard, with no KL penalty, and Owly just got better. In "
         "Part 5 the same treatment destroyed it. What is the difference?",
         ["Part 5 used a bigger learning rate",
-         "The verifier is an <b>exact function</b> — there is no gap between it and what we want, "
+         "The verifier is an <b>exact function</b>: there is no gap between it and what we want, "
          "so there is nothing to over-optimise. The reward model is a <b>learned approximation</b>, "
          "and it stops being informative off the data it was trained on",
          "The verifier is differentiable and the reward model is not",
          "Because the reward model was trained on too few parameters"],
         1,
         "Exactly the reason modern RLVR pipelines routinely run with β = 0 while RLHF cannot. The "
-        "KL leash is not dogma — it is a repair for a specific defect: your reward is a model, and "
+        "KL leash is not dogma: it is a repair for a specific defect: your reward is a model, and "
         "models are only trustworthy near their training distribution."),
 }
 
@@ -750,7 +750,7 @@ _TF_QUIZZES = {
     "hacking": ("🧠 Reward models and hacking", [
         ("A Bradley–Terry reward model is trained to score preferred replies above dispreferred "
          "ones.", True),
-        ("Only the <i>differences</i> between reward-model scores are identified — the overall "
+        ("Only the <i>differences</i> between reward-model scores are identified: the overall "
          "scale and offset are arbitrary.", True),
         ("A rising reward curve is evidence that the policy is genuinely improving.", False),
         ("Reward hacking means the policy found inputs where the reward model is wrong.", True),
@@ -770,7 +770,7 @@ _NUMBER_QUIZZES = {
     "probs": ("🔢 The probability of one reply", [
         ("Owly writes <code>keep</code> with probability 0.6, then <code>going</code> with "
          "probability 0.5. What is p(<code>keep going</code> | prompt)?", 0.30, 0.005,
-         "Autoregressive means multiply: 0.6 × 0.5. Nothing else enters — the transitions are "
+         "Autoregressive means multiply: 0.6 × 0.5. Nothing else enters: the transitions are "
          "deterministic, so the world contributes no probability of its own."),
         ("Under a <b>uniform</b> policy over 7 words and a 2-word reply, what is the probability of "
          "any particular reply? Give it to 3 decimals.", 0.020, 0.004,
@@ -797,7 +797,7 @@ def number_quiz(key):
 
 
 # ===========================================================================
-#  Final boss — timed true/false flash quiz with lives
+#  Final boss: timed true/false flash quiz with lives
 # ===========================================================================
 _FLASH_POOL = [
     # --- why RL at all ---
@@ -899,7 +899,7 @@ def flash_quiz(n_to_pass=10, lives=3, seconds=10):
 </style>
 <div id="__UID__">
   <div class="fq-top">
-    <div class="fq-title">🎯 Final boss — beat the clock</div>
+    <div class="fq-title">🎯 Final boss: beat the clock</div>
     <div class="fq-lives"></div>
   </div>
   <div class="fq-meta"><span class="fq-prog"></span><span class="fq-time"></span></div>
@@ -949,13 +949,13 @@ def flash_quiz(n_to_pass=10, lives=3, seconds=10):
     root.querySelectorAll(".fq-btn").forEach(b=>b.disabled=true);
     const q=D.pool[order[ptr]];
     if(val===q.a){correct++; flash().style.color="#1d7a46"; flash().textContent="✅ Correct!";}
-    else{lives--; flash().style.color="#b23b34"; flash().textContent="❌ Wrong — it was "+(q.a?"TRUE":"FALSE")+".";}
+    else{lives--; flash().style.color="#b23b34"; flash().textContent="❌ Wrong. It was "+(q.a?"TRUE":"FALSE")+".";}
     ptr++; renderHUD(); advance();
   }
   function timeout(){
     if(locked)return; locked=true;
     root.querySelectorAll(".fq-btn").forEach(b=>b.disabled=true);
-    lives--; ptr++; flash().style.color="#b23b34"; flash().textContent="⏱️ Out of time — life lost.";
+    lives--; ptr++; flash().style.color="#b23b34"; flash().textContent="⏱️ Out of time: life lost.";
     renderHUD(); advance();
   }
   function advance(){
