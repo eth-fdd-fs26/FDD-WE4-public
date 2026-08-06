@@ -18,6 +18,16 @@ import numpy as np
 from IPython.display import HTML, display
 
 # ===========================================================================
+#  Shared course palette (CLAUDE.md). GREEN/RED/AMBER mean good/bad/caution
+#  everywhere, in matplotlib and in HTML alike. Darker *_INK variants are for
+#  text, where the pastel fills do not have enough contrast on white.
+# ===========================================================================
+PURPLE, PURPLE2 = "#667eea", "#764ba2"
+GREEN, RED, AMBER = "#39b36a", "#e0796d", "#e0a23c"
+GREEN_INK, RED_INK = "#1d7a46", "#b23b34"
+INK, MUTED = "#2b2d6b", "#8d93a8"
+
+# ===========================================================================
 #  Owly's world (kept here so every widget labels things the same way)
 # ===========================================================================
 PROMPTS = ["how do you say hello?",
@@ -76,24 +86,33 @@ def _card(inner, maxw=860):
 def _mc_render(title, question, options, answer_index, reveal):
     data = {"opts": list(options), "ans": int(answer_index), "reveal": reveal}
     uid = "mc_" + str(abs(hash((question, tuple(options), answer_index))) % 10**8)
-    rows = "".join(
-        '<div class="mc-opt" data-i="%d"><span class="mc-dot"></span>%s</div>' % (i, o)
-        for i, o in enumerate(options))
     tmpl = r'''
 <style>
-#__UID__{font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #e6e8ee;border-radius:14px;padding:16px;max-width:780px;background:#fff}
-#__UID__ .mc-head{font-weight:800;font-size:15px;margin-bottom:4px}
-#__UID__ .mc-q{color:#444;font-size:13.5px;margin-bottom:12px;line-height:1.55}
-#__UID__ .mc-opt{display:flex;align-items:flex-start;gap:10px;border:1px solid #e2e5ef;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;font-size:13.5px;line-height:1.5;transition:.12s}
+#__UID__,#__UID__ *{box-sizing:border-box}
+#__UID__{font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #e6e8ee;border-radius:14px;padding:18px;max-width:780px;background:#fff;color:#1c1e2a}
+#__UID__ .mc-head{font-weight:800;font-size:15px;margin-bottom:5px;color:#2b2d6b}
+#__UID__ .mc-q{color:#444;font-size:13.5px;margin-bottom:14px;line-height:1.6}
+#__UID__ .mc-opt{display:flex;align-items:flex-start;gap:11px;border:1px solid #e2e5ef;border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .12s,background .12s}
 #__UID__ .mc-opt:hover{border-color:#764ba2;background:#faf9ff}
-#__UID__ .mc-dot{width:16px;height:16px;border-radius:50%;border:2px solid #c2c7da;flex:0 0 auto;margin-top:2px}
+/* the option body must be ONE flex item, or every inline <i>/<b>/<code> inside it
+   becomes a flex item of its own and the sentence breaks into columns. */
+#__UID__ .mc-txt{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+#__UID__ .mc-dot{width:17px;height:17px;border-radius:50%;border:2px solid #c2c7da;flex:0 0 auto;margin-top:2px;transition:.12s}
 #__UID__ .mc-opt code{background:#f3f0ff;border-radius:5px;padding:1px 5px;font-size:12.5px}
 #__UID__ .mc-opt.sel{border-color:#764ba2;background:#f1edff}
-#__UID__ .mc-opt.sel .mc-dot{background:#764ba2;border-color:#764ba2}
-#__UID__ .mc-opt.ok{border-color:#46b46e;background:#e7f7ec}
-#__UID__ .mc-opt.no{border-color:#e07a7a;background:#fdecec}
-#__UID__ .mc-btn{cursor:pointer;border:none;border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:6px}
-#__UID__ .mc-rev{font-size:13px;color:#2c2350;margin-top:10px;min-height:18px;line-height:1.6}
+#__UID__ .mc-opt.sel .mc-dot{background:#764ba2;border-color:#764ba2;box-shadow:inset 0 0 0 3px #fff}
+#__UID__ .mc-opt.ok{border-color:#39b36a;background:#e7f7ec}
+#__UID__ .mc-opt.ok .mc-dot{background:#39b36a;border-color:#39b36a;box-shadow:inset 0 0 0 3px #fff}
+#__UID__ .mc-opt.no{border-color:#e0796d;background:#fdecec}
+#__UID__ .mc-opt.no .mc-dot{background:#e0796d;border-color:#e0796d;box-shadow:inset 0 0 0 3px #fff}
+#__UID__ .mc-opt.done{cursor:default}
+#__UID__ .mc-opt.done:hover{border-color:inherit;background:inherit}
+#__UID__ .mc-tag{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;flex:0 0 auto;align-self:center;padding-left:8px}
+#__UID__ .mc-btn{cursor:pointer;border:none;border-radius:8px;padding:10px 20px;font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:8px}
+#__UID__ .mc-btn:hover{filter:brightness(1.07)}
+#__UID__ .mc-btn:disabled{opacity:.5;cursor:default;filter:none}
+#__UID__ .mc-rev{font-size:13px;color:#2c2350;margin-top:12px;line-height:1.65;padding:11px 13px;border-radius:10px;background:#f6f8ff;border:1px solid #ecebff;display:none}
+#__UID__ .mc-rev code{background:#eceeff;border-radius:5px;padding:1px 5px;font-size:12.5px}
 </style>
 <div id="__UID__">
   <div class="mc-head">__TITLE__</div>
@@ -105,25 +124,51 @@ def _mc_render(title, question, options, answer_index, reveal):
 <script>
 (function(){
   const D=__DATA__, root=document.getElementById("__UID__");
+  const rev=root.querySelector(".mc-rev"), btn=root.querySelector(".mc-btn");
   // shuffle the options so the correct one is not in a predictable slot
   let idx=D.opts.map((_,i)=>i);
   for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
   const list=root.querySelector(".mc-list");
   idx.forEach(orig=>{
     const o=document.createElement("div"); o.className="mc-opt"; o.dataset.i=orig;
-    o.innerHTML='<span class="mc-dot"></span>'+D.opts[orig];
+    const dot=document.createElement("span"); dot.className="mc-dot";
+    const txt=document.createElement("span"); txt.className="mc-txt"; txt.innerHTML=D.opts[orig];
+    o.appendChild(dot); o.appendChild(txt);
     list.appendChild(o);
   });
-  const opts=list.querySelectorAll(".mc-opt"); let sel=null;
+  const opts=list.querySelectorAll(".mc-opt"); let sel=null, done=false;
   opts.forEach(o=>o.addEventListener("click",()=>{
-    sel=+o.dataset.i; opts.forEach(x=>x.classList.remove("sel","ok","no")); o.classList.add("sel");
-    root.querySelector(".mc-rev").textContent="";
+    if(done) return;
+    sel=+o.dataset.i;
+    opts.forEach(x=>x.classList.remove("sel"));
+    o.classList.add("sel");
+    rev.style.display="none";
   }));
-  root.querySelector(".mc-btn").addEventListener("click",()=>{
-    if(sel===null){root.querySelector(".mc-rev").textContent="Pick an option first!";return;}
-    opts.forEach(o=>{const i=+o.dataset.i; o.classList.remove("sel");
-      if(i===D.ans)o.classList.add("ok"); else if(i===sel)o.classList.add("no");});
-    root.querySelector(".mc-rev").innerHTML=(sel===D.ans?"✅ Correct. ":"❌ Not quite. ")+D.reveal;
+  btn.addEventListener("click",()=>{
+    if(done) return;
+    if(sel===null){
+      rev.innerHTML="Pick an option first.";
+      rev.style.display="block";
+      return;
+    }
+    done=true; btn.disabled=true;
+    opts.forEach(o=>{
+      const i=+o.dataset.i;
+      o.classList.remove("sel"); o.classList.add("done");
+      if(i===D.ans){
+        o.classList.add("ok");
+        const t=document.createElement("span");
+        t.className="mc-tag"; t.style.color="#1d7a46"; t.textContent="correct";
+        o.appendChild(t);
+      } else if(i===sel){
+        o.classList.add("no");
+        const t=document.createElement("span");
+        t.className="mc-tag"; t.style.color="#b23b34"; t.textContent="your pick";
+        o.appendChild(t);
+      }
+    });
+    rev.innerHTML=(sel===D.ans?"✅ <b>Correct.</b> ":"❌ <b>Not quite.</b> ")+D.reveal;
+    rev.style.display="block";
   });
 })();
 </script>'''
@@ -138,18 +183,28 @@ def _tf_render(title, statements,
     uid = "tf_" + str(abs(hash((title, tuple(t for t, _ in statements)))) % 10**8)
     tmpl = r'''
 <style>
-#__UID__{font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #e6e8ee;border-radius:14px;padding:16px;max-width:780px;background:#fff}
-#__UID__ .tf-head{font-weight:800;font-size:15px;margin-bottom:4px}
-#__UID__ .tf-sub{color:#666;font-size:12.5px;margin-bottom:12px}
-#__UID__ .tf-opt{display:flex;align-items:center;gap:10px;border:1px solid #e2e5ef;border-radius:10px;padding:9px 12px;margin-bottom:7px;cursor:pointer;font-size:13.5px;line-height:1.5}
+#__UID__,#__UID__ *{box-sizing:border-box}
+#__UID__{font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #e6e8ee;border-radius:14px;padding:18px;max-width:780px;background:#fff;color:#1c1e2a}
+#__UID__ .tf-head{font-weight:800;font-size:15px;margin-bottom:5px;color:#2b2d6b}
+#__UID__ .tf-sub{color:#666;font-size:12.5px;margin-bottom:14px;line-height:1.55}
+#__UID__ .tf-opt{display:flex;align-items:flex-start;gap:11px;border:1px solid #e2e5ef;border-radius:10px;padding:10px 13px;margin-bottom:7px;cursor:pointer;transition:border-color .12s,background .12s}
 #__UID__ .tf-opt:hover{border-color:#764ba2;background:#faf9ff}
-#__UID__ .tf-box{width:16px;height:16px;border-radius:4px;border:2px solid #c2c7da;flex:0 0 auto}
+/* one flex item for the whole statement: otherwise each inline <i>/<code> becomes its own column */
+#__UID__ .tf-txt{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:1.55;overflow-wrap:anywhere}
+#__UID__ .tf-box{width:17px;height:17px;border-radius:5px;border:2px solid #c2c7da;flex:0 0 auto;margin-top:2px;position:relative;transition:.12s}
+#__UID__ .tf-opt code{background:#f3f0ff;border-radius:5px;padding:1px 5px;font-size:12.5px}
 #__UID__ .tf-opt.sel{border-color:#764ba2;background:#f1edff}
 #__UID__ .tf-opt.sel .tf-box{background:#764ba2;border-color:#764ba2}
-#__UID__ .tf-opt.ok{border-color:#46b46e;background:#e7f7ec}
-#__UID__ .tf-opt.no{border-color:#e07a7a;background:#fdecec}
-#__UID__ .tf-btn{cursor:pointer;border:none;border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:6px}
-#__UID__ .tf-status{font-size:13px;font-weight:700;color:#3b2d6b;margin-top:10px;min-height:18px}
+#__UID__ .tf-opt.sel .tf-box:after{content:"";position:absolute;left:4px;top:0px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+#__UID__ .tf-opt.hit{border-color:#39b36a;background:#e7f7ec}
+#__UID__ .tf-opt.miss{border-color:#e0a23c;background:#fff8e6}
+#__UID__ .tf-opt.wrong{border-color:#e0796d;background:#fdecec}
+#__UID__ .tf-opt.done{cursor:default}
+#__UID__ .tf-opt.done:hover{border-color:inherit;background:inherit}
+#__UID__ .tf-tag{font-size:11px;font-weight:800;letter-spacing:.03em;flex:0 0 auto;align-self:center;padding-left:8px;white-space:nowrap}
+#__UID__ .tf-btn{cursor:pointer;border:none;border-radius:8px;padding:10px 20px;font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:8px}
+#__UID__ .tf-btn:hover{filter:brightness(1.07)}
+#__UID__ .tf-status{font-size:13px;color:#2c2350;margin-top:12px;line-height:1.65;padding:11px 13px;border-radius:10px;background:#f6f8ff;border:1px solid #ecebff;display:none}
 </style>
 <div id="__UID__">
   <div class="tf-head">__TITLE__</div>
@@ -163,22 +218,49 @@ def _tf_render(title, statements,
   let DATA=__DATA__.slice();
   for(let i=DATA.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[DATA[i],DATA[j]]=[DATA[j],DATA[i]];}
   const root=document.getElementById("__UID__"), list=root.querySelector(".tf-list");
+  const status=root.querySelector(".tf-status");
   DATA.forEach((d,i)=>{
     const row=document.createElement("div"); row.className="tf-opt"; row.dataset.i=i;
-    row.innerHTML='<span class="tf-box"></span>'+d.t;
-    row.addEventListener("click",()=>{row.classList.remove("ok","no");row.classList.toggle("sel");});
+    const box=document.createElement("span"); box.className="tf-box";
+    const txt=document.createElement("span"); txt.className="tf-txt"; txt.innerHTML=d.t;
+    row.appendChild(box); row.appendChild(txt);
+    row.addEventListener("click",()=>{
+      if(row.classList.contains("done")) return;
+      row.classList.toggle("sel");
+      status.style.display="none";
+    });
     list.appendChild(row);
   });
   root.querySelector(".tf-btn").addEventListener("click",()=>{
-    let right=0; const rows=list.querySelectorAll(".tf-opt");
-    rows.forEach(r=>{
+    let right=0, missed=0, wrong=0;
+    list.querySelectorAll(".tf-opt").forEach(r=>{
       const d=DATA[+r.dataset.i], picked=r.classList.contains("sel");
-      r.classList.remove("ok","no");
-      if(picked===d.ok)right++; else r.classList.add("no");
-      if(d.ok)r.classList.add("ok");
+      r.classList.remove("hit","miss","wrong");
+      r.classList.add("done");
+      const old=r.querySelector(".tf-tag"); if(old) old.remove();
+      // exactly one verdict per row, so the colour never contradicts the legend
+      let cls=null, tag=null, col=null;
+      if(picked && d.ok){ cls="hit";   tag="true ✓";        col="#1d7a46"; right++; }
+      else if(!picked && !d.ok){                                           right++; }
+      else if(!picked && d.ok){ cls="miss";  tag="was true";  col="#8a6100"; missed++; }
+      else { cls="wrong"; tag="was false"; col="#b23b34"; wrong++; }
+      if(cls) r.classList.add(cls);
+      if(tag){
+        const t=document.createElement("span");
+        t.className="tf-tag"; t.style.color=col; t.textContent=tag;
+        r.appendChild(t);
+      }
     });
-    root.querySelector(".tf-status").textContent =
-      right+" / "+DATA.length+" correct"+(right===DATA.length?" 🎉":": green = actually true.");
+    let msg="<b>"+right+" / "+DATA.length+" correct</b>";
+    if(right===DATA.length) msg+=" 🎉 Every one of them.";
+    else{
+      const bits=[];
+      if(missed) bits.push("<b style='color:#8a6100'>amber</b> = true, but you left it unticked ("+missed+")");
+      if(wrong)  bits.push("<b style='color:#b23b34'>red</b> = you ticked it, but it is false ("+wrong+")");
+      msg+=" · "+bits.join(" · ");
+    }
+    status.innerHTML=msg;
+    status.style.display="block";
   });
 })();
 </script>'''
@@ -195,16 +277,21 @@ def _nq_render(title, questions,
     uid = "nq_" + str(abs(hash((title, tuple(q for q, _, _, _ in questions)))) % 10**8)
     tmpl = r'''
 <style>
-#__UID__{font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #e6e8ee;border-radius:14px;padding:16px;max-width:780px;background:#fff}
-#__UID__ .nq-head{font-weight:800;font-size:15px;margin-bottom:4px}
-#__UID__ .nq-sub{color:#666;font-size:12.5px;margin-bottom:12px}
-#__UID__ .nq-row{border:1px solid #e2e5ef;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;line-height:1.55}
-#__UID__ .nq-row.ok{border-color:#46b46e;background:#e7f7ec}
-#__UID__ .nq-row.no{border-color:#e07a7a;background:#fdecec}
-#__UID__ input{width:110px;padding:5px 8px;border:1px solid #c2c7da;border-radius:7px;font-size:13px;margin-top:6px}
-#__UID__ .nq-rev{font-size:12.5px;color:#3b2d6b;margin-top:6px;display:none}
-#__UID__ .nq-btn{cursor:pointer;border:none;border-radius:8px;padding:9px 18px;font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:6px}
-#__UID__ .nq-status{font-size:13px;font-weight:700;color:#3b2d6b;margin-top:10px;min-height:18px}
+#__UID__,#__UID__ *{box-sizing:border-box}
+#__UID__{font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #e6e8ee;border-radius:14px;padding:18px;max-width:780px;background:#fff;color:#1c1e2a}
+#__UID__ .nq-head{font-weight:800;font-size:15px;margin-bottom:5px;color:#2b2d6b}
+#__UID__ .nq-sub{color:#666;font-size:12.5px;margin-bottom:14px;line-height:1.55}
+#__UID__ .nq-row{border:1px solid #e2e5ef;border-radius:10px;padding:12px 13px;margin-bottom:8px;font-size:13.5px;line-height:1.6;transition:border-color .12s,background .12s}
+#__UID__ .nq-q{overflow-wrap:anywhere}
+#__UID__ .nq-row code{background:#f3f0ff;border-radius:5px;padding:1px 5px;font-size:12.5px}
+#__UID__ .nq-row.ok{border-color:#39b36a;background:#e7f7ec}
+#__UID__ .nq-row.no{border-color:#e0796d;background:#fdecec}
+#__UID__ input{width:130px;padding:7px 10px;border:1px solid #c2c7da;border-radius:8px;font-size:13px;margin-top:9px;font-family:inherit;background:#fff}
+#__UID__ input:focus{outline:none;border-color:#764ba2;box-shadow:0 0 0 3px #efeaff}
+#__UID__ .nq-rev{font-size:12.5px;color:#3b2d6b;margin-top:9px;line-height:1.6;display:none;padding-top:8px;border-top:1px dashed #d7dae6}
+#__UID__ .nq-btn{cursor:pointer;border:none;border-radius:8px;padding:10px 20px;font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:8px}
+#__UID__ .nq-btn:hover{filter:brightness(1.07)}
+#__UID__ .nq-status{font-size:13px;color:#2c2350;margin-top:12px;line-height:1.65;padding:11px 13px;border-radius:10px;background:#f6f8ff;border:1px solid #ecebff;display:none}
 </style>
 <div id="__UID__">
   <div class="nq-head">__TITLE__</div>
@@ -216,24 +303,37 @@ def _nq_render(title, questions,
 <script>
 (function(){
   const D=__DATA__, root=document.getElementById("__UID__"), list=root.querySelector(".nq-list");
+  const status=root.querySelector(".nq-status");
   D.forEach((d,i)=>{
     const row=document.createElement("div"); row.className="nq-row"; row.dataset.i=i;
-    row.innerHTML=d.q+'<br><input type="text" placeholder="your answer">'
-      +'<div class="nq-rev">'+d.rev+'</div>';
+    const q=document.createElement("div"); q.className="nq-q"; q.innerHTML=d.q;
+    const inp=document.createElement("input");
+    inp.type="text"; inp.setAttribute("inputmode","decimal"); inp.placeholder="your answer";
+    const rv=document.createElement("div"); rv.className="nq-rev"; rv.innerHTML=d.rev;
+    row.appendChild(q); row.appendChild(inp); row.appendChild(rv);
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter") check(); });
     list.appendChild(row);
   });
-  root.querySelector(".nq-btn").addEventListener("click",()=>{
-    let right=0;
+  function check(){
+    let right=0, blank=0;
     list.querySelectorAll(".nq-row").forEach(r=>{
-      const d=D[+r.dataset.i], v=parseFloat(r.querySelector("input").value.replace(",","."));
+      const d=D[+r.dataset.i], raw=r.querySelector("input").value.trim();
+      const v=parseFloat(raw.replace(",","."));
       r.classList.remove("ok","no");
+      if(raw===""){ blank++; r.querySelector(".nq-rev").style.display="none"; return; }
       const good=!isNaN(v)&&Math.abs(v-d.a)<=d.tol;
       r.classList.add(good?"ok":"no"); if(good)right++;
       r.querySelector(".nq-rev").style.display=good?"none":"block";
     });
-    root.querySelector(".nq-status").textContent=
-      right+" / "+D.length+" correct"+(right===D.length?" 🎉":": the hints under the red ones should help.");
-  });
+    let msg="<b>"+right+" / "+D.length+" correct</b>";
+    if(right===D.length) msg+=" 🎉";
+    else if(blank===D.length) msg="Type a number into each box, then press Check.";
+    else msg+=" · the hint under each red box should get you there"
+              +(blank?" ("+blank+" left blank)":"");
+    status.innerHTML=msg;
+    status.style.display="block";
+  }
+  root.querySelector(".nq-btn").addEventListener("click",check);
 })();
 </script>'''
     html = (tmpl.replace("__UID__", uid).replace("__TITLE__", title)
@@ -243,6 +343,38 @@ def _nq_render(title, questions,
 # ===========================================================================
 #  §1  The tutor: prompts, vocabulary, replies
 # ===========================================================================
+def roadmap():
+    """The six sections of this notebook as a stepper. Purely orienting: no data."""
+    steps = [("🧭", "Why not fine-tune?", "the three ways imitation fails"),
+             ("🗺️", "Text as an MDP", "every RL word, in new clothes"),
+             ("🎲", "REINFORCE", "a gradient out of samples"),
+             ("👥", "GRPO", "the group is its own baseline"),
+             ("⚠️", "Learned rewards", "and how they break"),
+             ("⚡", "DPO", "delete the reward model")]
+    cards = ""
+    for i, (icon, name, sub) in enumerate(steps, 1):
+        cards += (
+            '<div style="flex:1;min-width:150px;background:#fff;border:1px solid #e6e8ee;'
+            'border-radius:14px;padding:13px 14px;text-align:center">'
+            '<div style="width:44px;height:44px;margin:0 auto 8px;border-radius:50%%;'
+            'background:linear-gradient(135deg,%s,%s);display:flex;align-items:center;'
+            'justify-content:center;font-size:21px">%s</div>'
+            '<div style="font-size:11px;color:#8a8fb0;font-weight:700;letter-spacing:.06em">'
+            'PART %d</div>'
+            '<div style="font-size:13.5px;font-weight:800;color:%s;margin-top:2px">%s</div>'
+            '<div style="font-size:11.5px;color:#666;margin-top:4px;line-height:1.45">%s</div>'
+            '</div>' % (PURPLE, PURPLE2, icon, i, INK, name, sub))
+    display(HTML(
+        '<div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;border:1px solid #ecebff;'
+        'border-radius:18px;padding:18px;max-width:980px;'
+        'background:linear-gradient(135deg,#f6f8ff,#fbf5ff)">'
+        '<div style="font-size:15px;font-weight:800;color:%s;margin-bottom:3px">'
+        'Where this notebook is going</div>'
+        '<div style="font-size:12.5px;color:#666;margin-bottom:14px">Parts 1–4 are the core. '
+        'Parts 5–6 are the optional advanced track.</div>'
+        '<div style="display:flex;flex-wrap:wrap;gap:10px">%s</div></div>' % (INK, cards)))
+
+
 def tutor_overview():
     """The scenario on one card: three learner messages, one seven-word tutor."""
     def chip(emoji, name, sub, color):
@@ -256,7 +388,7 @@ def tutor_overview():
                                VOCAB[t] for t in TARGETS[i]),
                            PROMPT_COLOR[i]) for i in range(len(PROMPTS)))
     def word_chip(w):
-        style = (("#c0554e", "#c0554e", "#fdecec") if w == "PREMIUM"
+        style = (("#e0796d", "#e0796d", "#fdecec") if w == "PREMIUM"
                  else ("#d7dae6", "#3b2d6b", "#f7f7fb"))
         return ('<span style="display:inline-block;border:1px solid %s;color:%s;border-radius:8px;'
                 'padding:4px 10px;margin:3px;font-size:13px;font-weight:700;background:%s">%s</span>'
@@ -287,7 +419,7 @@ def logs_table(rows, title="A sample of the chat logs Owly was trained on"):
             'font-weight:700;color:%s">%s</td>'
             '<td style="padding:7px 10px;border-bottom:1px solid #eef0f6;font-size:12.5px;color:#777">'
             '%s</td></tr>'
-            % (PROMPT_EMOJI[p], PROMPTS[p], "#c0554e" if bad else "#2e9e7a",
+            % (PROMPT_EMOJI[p], PROMPTS[p], "#e0796d" if bad else "#39b36a",
                " ".join(VOCAB[t] for t in toks),
                "written by the growth team 😬" if bad else "written by a tutor"))
     _card('<div style="font-size:15px;font-weight:800;color:#2b2d6b;margin-bottom:10px">%s</div>'
@@ -299,12 +431,12 @@ def logs_table(rows, title="A sample of the chat logs Owly was trained on"):
 
 def mdp_mapping():
     """The RL vocabulary translated into LM vocabulary: the Part 2 bridge slide."""
-    rows = [("agent", "the language model", "#4a5bd0"),
-            ("state  s<sub>t</sub>", "the prompt + the words written so far &nbsp;<code>(x, y<sub>&lt;t</sub>)</code>", "#4a5bd0"),
-            ("action  a<sub>t</sub>", "write the next word &nbsp;<code>y<sub>t</sub></code>", "#2e9e7a"),
-            ("policy  &pi;<sub>&theta;</sub>(a|s)", "<code>p<sub>&theta;</sub>(y<sub>t</sub> | y<sub>&lt;t</sub>, x)</code>: the model's softmax", "#2e9e7a"),
-            ("transition", "glue the word on the end. <b>Deterministic.</b> No dice.", "#dd8452"),
-            ("reward  r", "one number, once the reply is finished", "#c0554e"),
+    rows = [("agent", "the language model", "#667eea"),
+            ("state  s<sub>t</sub>", "the prompt + the words written so far &nbsp;<code>(x, y<sub>&lt;t</sub>)</code>", "#667eea"),
+            ("action  a<sub>t</sub>", "write the next word &nbsp;<code>y<sub>t</sub></code>", "#39b36a"),
+            ("policy  &pi;<sub>&theta;</sub>(a|s)", "<code>p<sub>&theta;</sub>(y<sub>t</sub> | y<sub>&lt;t</sub>, x)</code>: the model's softmax", "#39b36a"),
+            ("transition", "glue the word on the end. <b>Deterministic.</b> No dice.", "#e0a23c"),
+            ("reward  r", "one number, once the reply is finished", "#e0796d"),
             ("episode", "one complete reply", "#8d93a8")]
     body = "".join(
         '<tr><td style="padding:8px 12px;border-bottom:1px solid #eef0f6;font-size:13.5px;'
@@ -316,30 +448,6 @@ def mdp_mapping():
           '<div style="font-size:12.5px;color:#666;margin-bottom:10px">Every row is something you '
           'already met in notebook 02: only the right-hand column changed.</div>'
           '<table style="border-collapse:collapse;width:100%%">%s</table>' % body, maxw=780)
-
-
-def rollout_strip(prompt_idx, tokens, probs, reward=None, title=None):
-    """Draw one reply as a left-to-right strip: prompt → word → word → reward."""
-    cells = ('<div style="border:1px solid %s;background:%s;border-radius:10px;padding:8px 12px;'
-             'font-size:13px;font-weight:700;color:#2b2d6b">%s “%s”</div>'
-             % (PROMPT_COLOR[prompt_idx], "#fbfbfe", PROMPT_EMOJI[prompt_idx], PROMPTS[prompt_idx]))
-    for t, (tok, p) in enumerate(zip(tokens, probs)):
-        cells += ('<div style="font-size:18px;color:#c2c7da;align-self:center">→</div>'
-                  '<div style="border:1px solid #d7dae6;border-radius:10px;padding:8px 12px;'
-                  'text-align:center;background:#fff">'
-                  '<div style="font-size:14px;font-weight:800;color:%s">%s</div>'
-                  '<div style="font-size:11.5px;color:#777;margin-top:2px">p = %.2f</div></div>'
-                  % ("#c0554e" if VOCAB[tok] == "PREMIUM" else "#3b2d6b", VOCAB[tok], p))
-    if reward is not None:
-        good = reward > 0.5
-        cells += ('<div style="font-size:18px;color:#c2c7da;align-self:center">⇒</div>'
-                  '<div style="border:2px solid %s;background:%s;border-radius:10px;padding:8px 14px;'
-                  'font-size:14px;font-weight:800;color:%s">r = %.2f</div>'
-                  % (("#46b46e", "#e7f7ec", "#1d7a46") if good else ("#e07a7a", "#fdecec", "#b23b34"),
-                     reward))
-    _card('%s<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch">%s</div>'
-          % ('<div style="font-size:14px;font-weight:800;color:#2b2d6b;margin-bottom:10px">%s</div>'
-             % title if title else "", cells), maxw=820)
 
 
 def exposure_bias_demo():
@@ -354,9 +462,9 @@ def exposure_bias_demo():
 #__UID__ .ttl{font-weight:800;font-size:13.5px;margin-bottom:8px}
 #__UID__ .step{display:flex;gap:8px;align-items:center;margin-bottom:7px;font-size:13px}
 #__UID__ .box{border:1px solid #d7dae6;border-radius:8px;padding:5px 9px;background:#fbfbfe;font-weight:700}
-#__UID__ .gold{border-color:#46b46e;background:#e7f7ec;color:#1d7a46}
+#__UID__ .gold{border-color:#39b36a;background:#e7f7ec;color:#1d7a46}
 #__UID__ .own{border-color:#e0a500;background:#fff8e6;color:#8a6100}
-#__UID__ .bad{border-color:#e07a7a;background:#fdecec;color:#b23b34}
+#__UID__ .bad{border-color:#e0796d;background:#fdecec;color:#b23b34}
 #__UID__ .note{font-size:12px;color:#666;margin-top:8px;line-height:1.55}
 #__UID__ .btn{cursor:pointer;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:12px}
 </style>
@@ -449,7 +557,7 @@ def group_advantages(rewards, normalize=False, title="One group, four replies"):
                    'reply %d</td>' % (i + 1) for i in range(len(r)))
     banner = ""
     if dead:
-        banner = ('<div style="margin-top:12px;border:2px solid #e07a7a;background:#fdecec;'
+        banner = ('<div style="margin-top:12px;border:2px solid #e0796d;background:#fdecec;'
                   'border-radius:10px;padding:10px 12px;font-size:13px;color:#b23b34;line-height:1.6">'
                   '<b>Every advantage is zero.</b> All four replies scored the same, so the group '
                   'mean <i>is</i> every reward. This prompt contributes <b>nothing</b> to the '
@@ -469,7 +577,7 @@ def live_groups_bar(fracs, labels, title="How much of each batch actually teache
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(7.6, 0.62 * len(fracs) + 1.5))
     y = np.arange(len(fracs))[::-1]
-    cols = ["#2e9e7a" if f > 0.45 else ("#dd8452" if f > 0.15 else "#c0554e") for f in fracs]
+    cols = ["#39b36a" if f > 0.45 else ("#e0a23c" if f > 0.15 else "#e0796d") for f in fracs]
     ax.barh(y, [100 * f for f in fracs], color=cols, height=0.55)
     for yi, f in zip(y, fracs):
         ax.text(100 * f + 1.5, yi, "%.0f%%" % (100 * f), va="center", fontsize=10.5,
@@ -493,7 +601,7 @@ def clip_picture(eps=0.2):
         clipped = np.clip(rho, 1 - eps, 1 + eps) * A
         obj = np.minimum(unclipped, clipped)
         ax.plot(rho, unclipped, ls=":", lw=1.6, color="#9aa0b5", label="ρ·A  (no clip)")
-        ax.plot(rho, obj, lw=2.6, color="#4a5bd0", label="PPO objective")
+        ax.plot(rho, obj, lw=2.6, color="#667eea", label="PPO objective")
         ax.axvspan(1 - eps, 1 + eps, color="#e7f7ec", zorder=0)
         ax.axvline(1.0, color="#c2c7da", lw=1)
         ax.set_title(ttl, fontsize=10.5, color="#2b2d6b", fontweight="bold")
@@ -516,7 +624,7 @@ def training_curve(series, labels=None, ylabel="accuracy of Owly's replies",
     if not isinstance(series[0], (list, tuple, np.ndarray)):
         series = [series]
     labels = labels or ["run %d" % (i + 1) for i in range(len(series))]
-    cols = ["#4a5bd0", "#c0554e", "#2e9e7a", "#dd8452"]
+    cols = ["#667eea", "#e0796d", "#39b36a", "#e0a23c"]
     fig, ax = plt.subplots(figsize=(8.0, 4.3))
     for i, (s, lab) in enumerate(zip(series, labels)):
         ax.plot(np.asarray(s, float), lw=2.2, color=cols[i % len(cols)], label=lab)
@@ -537,8 +645,8 @@ def variance_histogram(no_baseline, with_baseline, exact, title=None):
     fig, ax = plt.subplots(figsize=(8.0, 4.0))
     lo, hi = min(a.min(), b.min()), max(a.max(), b.max())
     bins = np.linspace(lo, hi, 44)
-    ax.hist(a, bins=bins, alpha=0.62, color="#c0554e", label="plain REINFORCE  (sd %.3f)" % a.std())
-    ax.hist(b, bins=bins, alpha=0.62, color="#2e9e7a", label="with a baseline  (sd %.3f)" % b.std())
+    ax.hist(a, bins=bins, alpha=0.62, color="#e0796d", label="plain REINFORCE  (sd %.3f)" % a.std())
+    ax.hist(b, bins=bins, alpha=0.62, color="#39b36a", label="with a baseline  (sd %.3f)" % b.std())
     ax.axvline(exact, color="#2b2d6b", lw=2.2, ls="--", label="the exact gradient (%.3f)" % exact)
     ax.set_xlabel("one component of the estimated gradient")
     ax.set_ylabel("how often")
@@ -556,8 +664,8 @@ def hacking_curve(rm_score, true_score, kl=None,
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(8.2, 4.4))
     x = np.arange(len(rm_score))
-    ax.plot(x, rm_score, lw=2.4, color="#c0554e", label="what the reward model says  (the proxy)")
-    ax.plot(x, true_score, lw=2.4, color="#2e9e7a", label="what learners actually get  (the truth)")
+    ax.plot(x, rm_score, lw=2.4, color="#e0796d", label="what the reward model says  (the proxy)")
+    ax.plot(x, true_score, lw=2.4, color="#39b36a", label="what learners actually get  (the truth)")
     k = int(np.argmax(true_score))
     ax.axvline(k, ls=":", lw=1.8, color="#8d93a8")
     ax.annotate("peak true quality\n: everything after this is over-optimization",
@@ -583,7 +691,7 @@ def kl_frontier(kls, trues, betas):
     """Reward-vs-KL frontier: one point per β."""
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(7.6, 4.3))
-    ax.plot(kls, trues, "-o", lw=2.0, color="#4a5bd0", ms=7)
+    ax.plot(kls, trues, "-o", lw=2.0, color="#667eea", ms=7)
     for k, t, b in zip(kls, trues, betas):
         ax.annotate("β=%g" % b, xy=(k, t), xytext=(4, 6), textcoords="offset points",
                     fontsize=9.5, color="#3b2d6b", fontweight="bold")
@@ -612,7 +720,7 @@ def playbook(probs, title="Owly's reply policy: the deliverable",
             % (" ".join(VOCAB[t] for t in _decode_id(int(j))), 100 * dist[j]) for j in order[1:])
         bar = ('<div style="height:8px;border-radius:5px;background:#eef0f6;overflow:hidden;'
                'margin-top:6px"><div style="height:100%%;width:%.1f%%;background:%s"></div></div>'
-               % (100 * conf, "#2e9e7a" if target_ok else "#c0554e"))
+               % (100 * conf, "#39b36a" if target_ok else "#e0796d"))
         rows += (
             '<div style="border:1px solid #e6e8ee;border-left:5px solid %s;border-radius:10px;'
             'padding:11px 13px;margin-bottom:9px">'
@@ -715,6 +823,21 @@ _MC_QUIZZES = {
         "Exactly the reason modern RLVR pipelines routinely run with β = 0 while RLHF cannot. The "
         "KL leash is not dogma: it is a repair for a specific defect: your reward is a model, and "
         "models are only trustworthy near their training distribution."),
+    "dpo": (
+        "What does DPO give up in exchange for deleting the reward model?",
+        "DPO trains on a fixed table of preference pairs and never generates during training. That "
+        "makes it far cheaper than GRPO. What is the price?",
+        ["Nothing: it is strictly better, which is why everyone uses it",
+         "It is <b>off-policy</b>: the pairs were collected once, so DPO has no opinion about the "
+         "replies the model is producing <i>now</i> and cannot correct a habit no rater was ever "
+         "shown",
+         "It can only be used with verifiable rewards",
+         "It needs a value network instead of a reward model"],
+        1,
+        "You saw this directly: with the third message missing from the annotation set, DPO fixed "
+        "the two flows the raters covered perfectly and left the third upselling a third of the "
+        "time. GRPO samples from the model as it currently is, so a new failure enters the batch "
+        "the moment the model starts producing it. DPO would need a fresh annotation round."),
 }
 
 _TF_QUIZZES = {
@@ -862,6 +985,14 @@ _FLASH_POOL = [
     ("The optimal KL-regularised policy is the reference policy reweighted by exponentiated reward.",
      True),
     ("Modern RLVR pipelines often run with no KL penalty at all.", True),
+    # --- DPO ---
+    ("DPO trains the policy directly on preference pairs, with no reward model.", True),
+    ("DPO needs to generate fresh replies from the model at every training step.", False),
+    ("In DPO the model's implicit reward is its log-probability ratio against the reference.", True),
+    ("DPO keeps a frozen copy of the starting policy as its reference.", True),
+    ("Because it is off-policy, DPO cannot correct mistakes the model is making right now.", True),
+    ("DPO still requires a separately trained value network.", False),
+    ("The unknown per-prompt constant cancels out of the DPO loss.", True),
     # --- practice ---
     ("Generation usually dominates the wall-clock time of an RL fine-tuning run.", True),
     ("Classic PPO-based RLHF may hold four models at once: policy, reference, reward and value.",
@@ -886,12 +1017,12 @@ def flash_quiz(n_to_pass=10, lives=3, seconds=10):
 #__UID__ .fq-lives{font-size:18px;letter-spacing:2px}
 #__UID__ .fq-meta{display:flex;justify-content:space-between;font-size:12.5px;color:#666;margin-bottom:10px}
 #__UID__ .fq-bar{height:8px;border-radius:5px;background:#eceeffa8;overflow:hidden;margin-bottom:16px}
-#__UID__ .fq-bar > div{height:100%;width:100%;background:linear-gradient(90deg,#46b46e,#e0a500,#e07a7a);transition:width .1s linear}
+#__UID__ .fq-bar > div{height:100%;width:100%;background:linear-gradient(90deg,#39b36a,#e0a500,#e0796d);transition:width .1s linear}
 #__UID__ .fq-stmt{font-size:16px;line-height:1.5;color:#1c1e2a;min-height:64px;display:flex;align-items:center;padding:6px 2px}
 #__UID__ .fq-btns{display:flex;gap:12px;margin-top:10px}
 #__UID__ .fq-btn{flex:1;cursor:pointer;border:2px solid;border-radius:12px;padding:14px;font-size:15px;font-weight:800;background:#fff;transition:.1s}
-#__UID__ .fq-true{border-color:#46b46e;color:#1d7a46}#__UID__ .fq-true:hover{background:#e7f7ec}
-#__UID__ .fq-false{border-color:#e07a7a;color:#b23b34}#__UID__ .fq-false:hover{background:#fdecec}
+#__UID__ .fq-true{border-color:#39b36a;color:#1d7a46}#__UID__ .fq-true:hover{background:#e7f7ec}
+#__UID__ .fq-false{border-color:#e0796d;color:#b23b34}#__UID__ .fq-false:hover{background:#fdecec}
 #__UID__ .fq-flash{font-size:13px;font-weight:700;margin-top:12px;min-height:20px}
 #__UID__ .fq-end{text-align:center;padding:14px 6px}
 #__UID__ .fq-end h3{font-size:22px;margin:6px 0}
