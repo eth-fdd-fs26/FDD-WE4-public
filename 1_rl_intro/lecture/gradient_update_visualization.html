@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Gradient Descent: Gaussian Multi-Modal Landscape</title>
+    <title>Gradient Optimization Visualizer</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         body {
@@ -20,12 +20,13 @@
         }
         #controls {
             display: flex;
-            gap: 35px;
+            gap: 25px;
             background: #ffffff;
             padding: 15px 30px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             margin-bottom: 10px;
+            align-items: center;
         }
         .control-group {
             display: flex;
@@ -38,8 +39,16 @@
             margin-bottom: 6px;
         }
         input[type=range] {
-            width: 200px;
+            width: 170px;
             cursor: pointer;
+        }
+        select {
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            font-weight: bold;
         }
         #plot {
             width: 100%;
@@ -52,6 +61,13 @@
 <div id="container">
     <div id="controls">
         <div class="control-group">
+            <label for="mode">Optimization Mode</label>
+            <select id="mode">
+                <option value="descent" selected>Gradient Descent</option>
+                <option value="ascent">Gradient Ascent</option>
+            </select>
+        </div>
+        <div class="control-group">
             <label for="theta1">Initial &theta;₁: <span id="val1">4.0</span></label>
             <input type="range" id="theta1" min="-9.0" max="9.0" step="0.1" value="4.0">
         </div>
@@ -60,34 +76,25 @@
             <input type="range" id="theta2" min="-9.0" max="9.0" step="0.1" value="-3.0">
         </div>
         <div class="control-group">
-            <label for="alpha">Learning Rate (&alpha;): <span id="val_alpha">0.50</span></label>
-            <input type="range" id="alpha" min="-1.00" max="1.00" step="0.01" value="0.50">
+            <label for="alpha">Learning Rate (&alpha;): <span id="val_alpha">0.30</span></label>
+            <input type="range" id="alpha" min="0.00" max="1.00" step="0.01" value="0.30">
         </div>
     </div>
     <div id="plot"></div>
 </div>
 
 <script>
-// --- 1. Gaussian Mixture Landscape & Analytical Gradient ---
-function L_func(t1, t2) {
+// --- 1. Base Function and Gradient ---
+function L_raw(t1, t2) {
     const base = 0.2 * (Math.pow(t1, 2) + Math.pow(t2, 2));
-    
-    // Deep Global Minimum near (-3, 3)
     const g1 = 18 * Math.exp(-(Math.pow(t1 + 3, 2) + Math.pow(t2 - 3, 2)) / 6);
-    
-    // Local Minimum near (3, 3)
     const g2 = 12 * Math.exp(-(Math.pow(t1 - 3, 2) + Math.pow(t2 - 3, 2)) / 5);
-    
-    // Local Minimum near (3, -3)
     const g3 = 14 * Math.exp(-(Math.pow(t1 - 3, 2) + Math.pow(t2 + 3, 2)) / 6);
-    
-    // Central Ridge / Bump near (0, 0)
     const bump = 8 * Math.exp(-(Math.pow(t1, 2) + Math.pow(t2, 2)) / 4);
-
     return base - g1 - g2 - g3 + bump + 20;
 }
 
-function grad_L_func(t1, t2) {
+function grad_L_raw(t1, t2) {
     let dt1 = 0.4 * t1;
     let dt2 = 0.4 * t2;
 
@@ -110,6 +117,26 @@ function grad_L_func(t1, t2) {
     return [dt1, dt2];
 }
 
+// Objective Function Evaluator depending on Mode
+// Descent: L(θ) = L_raw(θ)
+// Ascent:  J(θ) = -L_raw(θ) + 70  (Shifts surface above Z=0)
+function objective_func(t1, t2, mode) {
+    if (mode === 'descent') {
+        return L_raw(t1, t2);
+    } else {
+        return -L_raw(t1, t2) + 70;
+    }
+}
+
+function grad_objective_func(t1, t2, mode) {
+    const g = grad_L_raw(t1, t2);
+    if (mode === 'descent') {
+        return g;
+    } else {
+        return [-g[0], -g[1]];
+    }
+}
+
 // --- 2. Surface Meshgrid Data [-10, 10] ---
 const N = 80;
 const t1_vals = [];
@@ -120,60 +147,69 @@ for (let i = 0; i < N; i++) {
     t2_vals.push(-10 + i * step);
 }
 
-const Z = [];
-for (let i = 0; i < N; i++) {
-    const row = [];
-    for (let j = 0; j < N; j++) {
-        row.push(L_func(t1_vals[j], t2_vals[i]));
+function getSurfaceTrace(mode) {
+    const Z = [];
+    for (let i = 0; i < N; i++) {
+        const row = [];
+        for (let j = 0; j < N; j++) {
+            row.push(objective_func(t1_vals[j], t2_vals[i], mode));
+        }
+        Z.push(row);
     }
-    Z.push(row);
+
+    return {
+        x: t1_vals,
+        y: t2_vals,
+        z: Z,
+        type: 'surface',
+        colorscale: mode === 'descent' ? 'Viridis' : 'Plasma',
+        opacity: 0.7,
+        showscale: true,
+        colorbar: { title: mode === 'descent' ? 'Loss L' : 'Objective J', thickness: 15, len: 0.5 },
+        name: mode === 'descent' ? 'Loss Surface L(θ)' : 'Objective Surface J(θ)',
+        hoverinfo: 'none'
+    };
 }
 
-const surface_trace = {
-    x: t1_vals,
-    y: t2_vals,
-    z: Z,
-    type: 'surface',
-    colorscale: 'Viridis',
-    opacity: 0.7,
-    showscale: true,
-    colorbar: { title: 'Loss L', thickness: 15, len: 0.5 },
-    name: 'Loss Surface',
-    hoverinfo: 'none'
-};
-
 // --- 3. Dynamic Data Generator ---
-function generatePlotData(t1_start, t2_start, alpha) {
-    const z_start = L_func(t1_start, t2_start);
-    const gradient = grad_L_func(t1_start, t2_start);
+function generatePlotData(t1_start, t2_start, alpha, mode) {
+    const z_start = objective_func(t1_start, t2_start, mode);
+    const grad = grad_objective_func(t1_start, t2_start, mode);
 
-    // Gradient descent step: θ' = θ - α * ∇L(θ)
-    const t1_new = t1_start - alpha * gradient[0];
-    const t2_new = t2_start - alpha * gradient[1];
-    const z_new = L_func(t1_new, t2_new);
+    // Update Step:
+    // Descent: θ' = θ - α * ∇L(θ)
+    // Ascent:  θ' = θ + α * ∇J(θ)
+    let t1_new, t2_new;
+    if (mode === 'descent') {
+        t1_new = t1_start - alpha * grad[0];
+        t2_new = t2_start - alpha * grad[1];
+    } else {
+        t1_new = t1_start + alpha * grad[0];
+        t2_new = t2_start + alpha * grad[1];
+    }
+    const z_new = objective_func(t1_new, t2_new, mode);
 
-    // Exact Gradient Arrow Calculation
-    const grad_mag = Math.sqrt(gradient[0]**2 + gradient[1]**2);
-    
-    // True geometric tip of gradient vector
-    const arrow_tip_x = t1_start + gradient[0];
-    const arrow_tip_y = t2_start + gradient[1];
+    // Vector display calculation for ∇L(θ) or ∇J(θ)
+    const grad_mag = Math.sqrt(grad[0]**2 + grad[1]**2);
+    const arrow_tip_x = t1_start + grad[0];
+    const arrow_tip_y = t2_start + grad[1];
 
-    // Cone size reference and fraction offset
     const cone_size = 0.8; 
     let shaft_end_x = arrow_tip_x;
     let shaft_end_y = arrow_tip_y;
 
     if (grad_mag > 1e-5) {
-        // Cone length in domain units equals cone_size
-        // Shaft ends where cone base begins so total length equals ||∇L|| exactly
         const cone_len_fraction = Math.min(1.0, cone_size / grad_mag);
-        shaft_end_x = t1_start + (1.0 - cone_len_fraction) * gradient[0];
-        shaft_end_y = t2_start + (1.0 - cone_len_fraction) * gradient[1];
+        shaft_end_x = t1_start + (1.0 - cone_len_fraction) * grad[0];
+        shaft_end_y = t2_start + (1.0 - cone_len_fraction) * grad[1];
     }
 
+    const func_label = mode === 'descent' ? 'L' : 'J';
+    const grad_symbol = mode === 'descent' ? '∇L' : '∇J';
+    const step_label = mode === 'descent' ? '-𝝰 ∇L(θ)' : '+𝝰 ∇J(θ)';
+
     return [
-        surface_trace,
+        getSurfaceTrace(mode),
         
         // (Element 1) Starting Point θ on X-Y Plane (Z=0)
         {
@@ -189,18 +225,18 @@ function generatePlotData(t1_start, t2_start, alpha) {
             hovertext: `θ=(${t1_start.toFixed(1)}, ${t2_start.toFixed(1)})`        
         },
         
-        // (Element 2) L(θ) on Surface
+        // (Element 2) Point on Surface
         {
             x: [t1_start], y: [t2_start], z: [z_start],
             mode: 'markers',
             type: 'scatter3d',
             marker: { size: 6, color: 'red', symbol: 'diamond', line: { color: 'black', width: 1 } },
-            name: 'L(θ)',
+            name: `${func_label}(θ)`,
             hoverinfo: 'text',
-            hovertext: `L(θ)=${z_start.toFixed(1)}`
+            hovertext: `${func_label}(θ)=${z_start.toFixed(1)}`
         },
         
-        // (Element 3) Dotted line connecting θ to L(θ)
+        // (Element 3) Dotted line connecting θ to surface
         {
             x: [t1_start, t1_start], y: [t2_start, t2_start], z: [0, z_start],
             mode: 'lines',
@@ -210,40 +246,40 @@ function generatePlotData(t1_start, t2_start, alpha) {
             hoverinfo: 'none'
         },
         
-        // (Element 4 - Part 1) Gradient Line Shaft (Stops at cone base)
+        // (Element 4 - Part 1) Gradient Shaft
         {
             x: [t1_start, shaft_end_x], y: [t2_start, shaft_end_y], z: [0, 0],
             mode: 'lines',
             type: 'scatter3d',
             line: { color: 'black', width: 4 },
-            name: 'Gradient Vector ∇L(θ)',
+            name: `Gradient Vector ${grad_symbol}(θ)`,
             hoverinfo: 'text',
-            hovertext: `∇L=[${gradient[0].toFixed(1)}, ${gradient[1].toFixed(1)}]`
+            hovertext: `${grad_symbol}=[${grad[0].toFixed(1)}, ${grad[1].toFixed(1)}]`
         },
         
-        // (Element 4 - Part 2) Gradient Cone Tip (Tip anchored at exact vector end)
+        // (Element 4 - Part 2) Gradient Cone Tip
         {
             x: [arrow_tip_x], y: [arrow_tip_y], z: [0],
-            u: [gradient[0]], v: [gradient[1]], w: [0],
+            u: [grad[0]], v: [grad[1]], w: [0],
             type: 'cone',
             sizemode: 'absolute',
             sizeref: cone_size,
-            anchor: 'tip', // Anchors top of cone to exact vector tip
+            anchor: 'tip',
             colorscale: [[0, 'black'], [1, 'black']],
             showscale: false,
             showlegend: false,
             hoverinfo: 'text',
-            hovertext: `∇L(θ)=[${gradient[0].toFixed(1)}, ${gradient[1].toFixed(1)}]`
+            hovertext: `${grad_symbol}(θ)=[${grad[0].toFixed(1)}, ${grad[1].toFixed(1)}]`
         },
         
-        // (Element 5a) Update Step Line (-α ∇L(θ))
+        // (Element 5a) Update Step Line
         {
             x: [t1_start, t1_new], y: [t2_start, t2_new], z: [0, 0],
             mode: 'lines+markers',
             type: 'scatter3d',
             line: { color: 'blue', width: 4, dash: 'dash' },
             marker: { size: [0, 8], color: 'blue', symbol: 'diamond' },
-            name: 'Update Step -𝝰 ∇L(θ)',
+            name: `Step ${step_label}`,
             hoverinfo: 'none'
         },
         
@@ -256,23 +292,23 @@ function generatePlotData(t1_start, t2_start, alpha) {
             text: ["θ'"],
             textposition: 'top center',
             textfont: { color: 'black', size: 14 },
-            name: "θ' = θ - 𝝰 ∇L(θ)",
+            name: mode === 'descent' ? "θ' = θ - 𝝰 ∇L(θ)" : "θ' = θ + 𝝰 ∇J(θ)",
             hoverinfo: 'text',
             hovertext: `θ' = (${t1_new.toFixed(1)}, ${t2_new.toFixed(1)})`
         },
         
-        // (Element 6) L(θ') on Surface
+        // (Element 6) New Point on Surface
         {
             x: [t1_new], y: [t2_new], z: [z_new],
             mode: 'markers',
             type: 'scatter3d',
             marker: { size: 6, color: 'blue', symbol: 'diamond', line: { color: 'black', width: 1 } },
-            name: "L(θ')",
+            name: `${func_label}(θ')`,
             hoverinfo: 'text',
-            hovertext: `L(θ')=${z_new.toFixed(1)}`
+            hovertext: `${func_label}(θ')=${z_new.toFixed(1)}`
         },
         
-        // (Element 7) Dotted line connecting θ' to L(θ')
+        // (Element 7) Dotted line connecting θ' to surface
         {
             x: [t1_new, t1_new], y: [t2_new, t2_new], z: [0, z_new],
             mode: 'lines',
@@ -285,17 +321,24 @@ function generatePlotData(t1_start, t2_start, alpha) {
 }
 
 // --- 4. Layout Settings ---
-function getLayout(alpha) {
+function getLayout(alpha, mode) {
+    const titleText = mode === 'descent' 
+        ? `One Step of Gradient Descent: θ' = θ - 𝝰 ∇L(θ)`
+        : `One Step of Gradient Ascent: θ' = θ + 𝝰 ∇J(θ)`;
+        
+    const zTitle = mode === 'descent' ? 'Loss L' : 'Objective J';
+    const zRange = mode === 'descent' ? [-2, 55] : [-2, 75];
+
     return {
         title: {
-            text: `One Step of Gradient Update: θ' = θ - 𝝰 ∇L(θ)`,
+            text: titleText,
             x: 0.5,
             y: 0.95
         },
         scene: {
             xaxis: { title: 'θ₁', range: [-10, 10], showspikes: false },
             yaxis: { title: 'θ₂', range: [-10, 10], showspikes: false },
-            zaxis: { title: 'Loss L', range: [-2, 55], showspikes: false },
+            zaxis: { title: zTitle, range: zRange, showspikes: false },
             aspectmode: 'manual',
             aspectratio: { x: 1, y: 1, z: 0.7 },
             camera: {
@@ -309,30 +352,36 @@ function getLayout(alpha) {
 }
 
 // Initial state
-let t1_val = 1.0;
-let t2_val = -2.5;
-let alpha_val = 0.5;
+let t1_val = 4.0;
+let t2_val = -3.0;
+let alpha_val = 0.30;
+let current_mode = 'descent';
 
 // Initial Render
-Plotly.newPlot('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+Plotly.newPlot('plot', generatePlotData(t1_val, t2_val, alpha_val, current_mode), getLayout(alpha_val, current_mode));
 
-// Slider Listeners
+// Listeners
+document.getElementById('mode').addEventListener('change', (e) => {
+    current_mode = e.target.value;
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val, current_mode), getLayout(alpha_val, current_mode));
+});
+
 document.getElementById('theta1').addEventListener('input', (e) => {
     t1_val = parseFloat(e.target.value);
     document.getElementById('val1').innerText = t1_val.toFixed(1);
-    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val, current_mode), getLayout(alpha_val, current_mode));
 });
 
 document.getElementById('theta2').addEventListener('input', (e) => {
     t2_val = parseFloat(e.target.value);
     document.getElementById('val2').innerText = t2_val.toFixed(1);
-    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val, current_mode), getLayout(alpha_val, current_mode));
 });
 
 document.getElementById('alpha').addEventListener('input', (e) => {
     alpha_val = parseFloat(e.target.value);
     document.getElementById('val_alpha').innerText = alpha_val.toFixed(2);
-    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val, current_mode), getLayout(alpha_val, current_mode));
 });
 </script>
 
