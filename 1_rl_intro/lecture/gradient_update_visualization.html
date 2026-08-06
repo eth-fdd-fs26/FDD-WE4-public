@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Gradient Descent: Gaussian Multi-Modal Landscape</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        #controls {
+            display: flex;
+            gap: 35px;
+            background: #ffffff;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        label {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        input[type=range] {
+            width: 200px;
+            cursor: pointer;
+        }
+        #plot {
+            width: 100%;
+            height: 75vh;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="controls">
+        <div class="control-group">
+            <label for="theta1">Initial &theta;₁: <span id="val1">4.0</span></label>
+            <input type="range" id="theta1" min="-9.0" max="9.0" step="0.1" value="4.0">
+        </div>
+        <div class="control-group">
+            <label for="theta2">Initial &theta;₂: <span id="val2">-3.0</span></label>
+            <input type="range" id="theta2" min="-9.0" max="9.0" step="0.1" value="-3.0">
+        </div>
+        <div class="control-group">
+            <label for="alpha">Learning Rate (&alpha;): <span id="val_alpha">0.50</span></label>
+            <input type="range" id="alpha" min="-1.00" max="1.00" step="0.01" value="0.50">
+        </div>
+    </div>
+    <div id="plot"></div>
+</div>
+
+<script>
+// --- 1. Gaussian Mixture Landscape & Analytical Gradient ---
+function L_func(t1, t2) {
+    const base = 0.2 * (Math.pow(t1, 2) + Math.pow(t2, 2));
+    
+    // Deep Global Minimum near (-3, 3)
+    const g1 = 18 * Math.exp(-(Math.pow(t1 + 3, 2) + Math.pow(t2 - 3, 2)) / 6);
+    
+    // Local Minimum near (3, 3)
+    const g2 = 12 * Math.exp(-(Math.pow(t1 - 3, 2) + Math.pow(t2 - 3, 2)) / 5);
+    
+    // Local Minimum near (3, -3)
+    const g3 = 14 * Math.exp(-(Math.pow(t1 - 3, 2) + Math.pow(t2 + 3, 2)) / 6);
+    
+    // Central Ridge / Bump near (0, 0)
+    const bump = 8 * Math.exp(-(Math.pow(t1, 2) + Math.pow(t2, 2)) / 4);
+
+    return base - g1 - g2 - g3 + bump + 20;
+}
+
+function grad_L_func(t1, t2) {
+    let dt1 = 0.4 * t1;
+    let dt2 = 0.4 * t2;
+
+    const g1 = 18 * Math.exp(-(Math.pow(t1 + 3, 2) + Math.pow(t2 - 3, 2)) / 6);
+    dt1 -= g1 * (-2 * (t1 + 3) / 6);
+    dt2 -= g1 * (-2 * (t2 - 3) / 6);
+
+    const g2 = 12 * Math.exp(-(Math.pow(t1 - 3, 2) + Math.pow(t2 - 3, 2)) / 5);
+    dt1 -= g2 * (-2 * (t1 - 3) / 5);
+    dt2 -= g2 * (-2 * (t2 - 3) / 5);
+
+    const g3 = 14 * Math.exp(-(Math.pow(t1 - 3, 2) + Math.pow(t2 + 3, 2)) / 6);
+    dt1 -= g3 * (-2 * (t1 - 3) / 6);
+    dt2 -= g3 * (-2 * (t2 + 3) / 6);
+
+    const bump = 8 * Math.exp(-(Math.pow(t1, 2) + Math.pow(t2, 2)) / 4);
+    dt1 += bump * (-2 * t1 / 4);
+    dt2 += bump * (-2 * t2 / 4);
+
+    return [dt1, dt2];
+}
+
+// --- 2. Surface Meshgrid Data [-10, 10] ---
+const N = 80;
+const t1_vals = [];
+const t2_vals = [];
+const step = 20 / (N - 1);
+for (let i = 0; i < N; i++) {
+    t1_vals.push(-10 + i * step);
+    t2_vals.push(-10 + i * step);
+}
+
+const Z = [];
+for (let i = 0; i < N; i++) {
+    const row = [];
+    for (let j = 0; j < N; j++) {
+        row.push(L_func(t1_vals[j], t2_vals[i]));
+    }
+    Z.push(row);
+}
+
+const surface_trace = {
+    x: t1_vals,
+    y: t2_vals,
+    z: Z,
+    type: 'surface',
+    colorscale: 'Viridis',
+    opacity: 0.7,
+    showscale: true,
+    colorbar: { title: 'Loss L', thickness: 15, len: 0.5 },
+    name: 'Loss Surface',
+    hoverinfo: 'none'
+};
+
+// --- 3. Dynamic Data Generator ---
+function generatePlotData(t1_start, t2_start, alpha) {
+    const z_start = L_func(t1_start, t2_start);
+    const gradient = grad_L_func(t1_start, t2_start);
+
+    // Gradient descent step: θ' = θ - α * ∇L(θ)
+    const t1_new = t1_start - alpha * gradient[0];
+    const t2_new = t2_start - alpha * gradient[1];
+    const z_new = L_func(t1_new, t2_new);
+
+    // Exact Gradient Arrow Calculation
+    const grad_mag = Math.sqrt(gradient[0]**2 + gradient[1]**2);
+    
+    // True geometric tip of gradient vector
+    const arrow_tip_x = t1_start + gradient[0];
+    const arrow_tip_y = t2_start + gradient[1];
+
+    // Cone size reference and fraction offset
+    const cone_size = 0.8; 
+    let shaft_end_x = arrow_tip_x;
+    let shaft_end_y = arrow_tip_y;
+
+    if (grad_mag > 1e-5) {
+        // Cone length in domain units equals cone_size
+        // Shaft ends where cone base begins so total length equals ||∇L|| exactly
+        const cone_len_fraction = Math.min(1.0, cone_size / grad_mag);
+        shaft_end_x = t1_start + (1.0 - cone_len_fraction) * gradient[0];
+        shaft_end_y = t2_start + (1.0 - cone_len_fraction) * gradient[1];
+    }
+
+    return [
+        surface_trace,
+        
+        // (Element 1) Starting Point θ on X-Y Plane (Z=0)
+        {
+            x: [t1_start], y: [t2_start], z: [0],
+            mode: 'markers+text',
+            type: 'scatter3d',
+            marker: { size: 8, color: 'red', symbol: 'circle', line: { color: 'black', width: 1 } },
+            text: ['θ'],
+            textposition: 'top center',
+            textfont: { color: 'black', size: 14 },
+            name: 'θ',
+            hoverinfo: 'text',
+            hovertext: `θ=(${t1_start.toFixed(1)}, ${t2_start.toFixed(1)})`        
+        },
+        
+        // (Element 2) L(θ) on Surface
+        {
+            x: [t1_start], y: [t2_start], z: [z_start],
+            mode: 'markers',
+            type: 'scatter3d',
+            marker: { size: 6, color: 'red', symbol: 'diamond', line: { color: 'black', width: 1 } },
+            name: 'L(θ)',
+            hoverinfo: 'text',
+            hovertext: `L(θ)=${z_start.toFixed(1)}`
+        },
+        
+        // (Element 3) Dotted line connecting θ to L(θ)
+        {
+            x: [t1_start, t1_start], y: [t2_start, t2_start], z: [0, z_start],
+            mode: 'lines',
+            type: 'scatter3d',
+            line: { color: 'red', width: 2, dash: 'dot' },
+            showlegend: false,
+            hoverinfo: 'none'
+        },
+        
+        // (Element 4 - Part 1) Gradient Line Shaft (Stops at cone base)
+        {
+            x: [t1_start, shaft_end_x], y: [t2_start, shaft_end_y], z: [0, 0],
+            mode: 'lines',
+            type: 'scatter3d',
+            line: { color: 'black', width: 4 },
+            name: 'Gradient Vector ∇L(θ)',
+            hoverinfo: 'text',
+            hovertext: `∇L=[${gradient[0].toFixed(1)}, ${gradient[1].toFixed(1)}]`
+        },
+        
+        // (Element 4 - Part 2) Gradient Cone Tip (Tip anchored at exact vector end)
+        {
+            x: [arrow_tip_x], y: [arrow_tip_y], z: [0],
+            u: [gradient[0]], v: [gradient[1]], w: [0],
+            type: 'cone',
+            sizemode: 'absolute',
+            sizeref: cone_size,
+            anchor: 'tip', // Anchors top of cone to exact vector tip
+            colorscale: [[0, 'black'], [1, 'black']],
+            showscale: false,
+            showlegend: false,
+            hoverinfo: 'text',
+            hovertext: `∇L(θ)=[${gradient[0].toFixed(1)}, ${gradient[1].toFixed(1)}]`
+        },
+        
+        // (Element 5a) Update Step Line (-α ∇L(θ))
+        {
+            x: [t1_start, t1_new], y: [t2_start, t2_new], z: [0, 0],
+            mode: 'lines+markers',
+            type: 'scatter3d',
+            line: { color: 'blue', width: 4, dash: 'dash' },
+            marker: { size: [0, 8], color: 'blue', symbol: 'diamond' },
+            name: 'Update Step -𝝰 ∇L(θ)',
+            hoverinfo: 'none'
+        },
+        
+        // (Element 5b) New Point θ' on X-Y Plane (Z=0)
+        {
+            x: [t1_new], y: [t2_new], z: [0],
+            mode: 'markers+text',
+            type: 'scatter3d',
+            marker: { size: 8, color: 'blue', symbol: 'circle', line: { color: 'black', width: 1 } },
+            text: ["θ'"],
+            textposition: 'top center',
+            textfont: { color: 'black', size: 14 },
+            name: "θ' = θ - 𝝰 ∇L(θ)",
+            hoverinfo: 'text',
+            hovertext: `θ' = (${t1_new.toFixed(1)}, ${t2_new.toFixed(1)})`
+        },
+        
+        // (Element 6) L(θ') on Surface
+        {
+            x: [t1_new], y: [t2_new], z: [z_new],
+            mode: 'markers',
+            type: 'scatter3d',
+            marker: { size: 6, color: 'blue', symbol: 'diamond', line: { color: 'black', width: 1 } },
+            name: "L(θ')",
+            hoverinfo: 'text',
+            hovertext: `L(θ')=${z_new.toFixed(1)}`
+        },
+        
+        // (Element 7) Dotted line connecting θ' to L(θ')
+        {
+            x: [t1_new, t1_new], y: [t2_new, t2_new], z: [0, z_new],
+            mode: 'lines',
+            type: 'scatter3d',
+            line: { color: 'blue', width: 2, dash: 'dot' },
+            showlegend: false,
+            hoverinfo: 'none'
+        }
+    ];
+}
+
+// --- 4. Layout Settings ---
+function getLayout(alpha) {
+    return {
+        title: {
+            text: `One Step of Gradient Update: θ' = θ - 𝝰 ∇L(θ)`,
+            x: 0.5,
+            y: 0.95
+        },
+        scene: {
+            xaxis: { title: 'θ₁', range: [-10, 10], showspikes: false },
+            yaxis: { title: 'θ₂', range: [-10, 10], showspikes: false },
+            zaxis: { title: 'Loss L', range: [-2, 55], showspikes: false },
+            aspectmode: 'manual',
+            aspectratio: { x: 1, y: 1, z: 0.7 },
+            camera: {
+                eye: { x: -1.2, y: -1.2, z: 0.4 }
+            }
+        },
+        margin: { l: 0, r: 0, b: 0, t: 60 },
+        showlegend: true,
+        legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.7)' }
+    };
+}
+
+// Initial state
+let t1_val = 1.0;
+let t2_val = -2.5;
+let alpha_val = 0.5;
+
+// Initial Render
+Plotly.newPlot('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+
+// Slider Listeners
+document.getElementById('theta1').addEventListener('input', (e) => {
+    t1_val = parseFloat(e.target.value);
+    document.getElementById('val1').innerText = t1_val.toFixed(1);
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+});
+
+document.getElementById('theta2').addEventListener('input', (e) => {
+    t2_val = parseFloat(e.target.value);
+    document.getElementById('val2').innerText = t2_val.toFixed(1);
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+});
+
+document.getElementById('alpha').addEventListener('input', (e) => {
+    alpha_val = parseFloat(e.target.value);
+    document.getElementById('val_alpha').innerText = alpha_val.toFixed(2);
+    Plotly.react('plot', generatePlotData(t1_val, t2_val, alpha_val), getLayout(alpha_val));
+});
+</script>
+
+</body>
+</html>
